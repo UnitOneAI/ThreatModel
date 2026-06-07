@@ -1,0 +1,18 @@
+{
+  "domain": "building-automation / OT",
+  "capabilities": ["remote supervisory control", "BACnet/SC messaging", "firmware update"],
+  "data_sensitivity": ["operational", "config", "device-keys"],
+  "threat_actors": [
+    "Unauthenticated peer on the IT VLAN",
+    "Compromised supervisory workstation",
+    "Insider with MS/TP field-bus access",
+    "Ransomware pivoting IT -> OT"
+  ],
+  "attack_vectors": [
+    "Legacy BACnet/IP alongside authenticated BACnet/SC",
+    "IT -> OT lateral movement",
+    "Firmware / config tampering"
+  ],
+  "compliance": ["IEC 62443", "EU CRA"],
+  "critical_assets": ["edge controller config store", "device key store", "audit log"]
+}

@@ -1,0 +1,8 @@
+# Default owners for everything in the repo.
+*                       @UnitOneAI/maintainers
+
+# Skills are a supply-chain surface (a skill body is a system prompt). Changes here
+# require security maintainer review in addition to CI's injection-scan gate.
+/synthesis_engine/skills/   @UnitOneAI/security
+/scripts/scan_skills.py     @UnitOneAI/security
+/SECURITY.md                @UnitOneAI/security

@@ -1,0 +1,31 @@
+# synthesis
+.synthesis/
+*.db
+.tmp/
+data/
+
+# canonical skills now live in synthesis_engine/skills/ (packaged). The old
+# top-level skills/ is a vestigial duplicate kept out of the published repo.
+/skills/
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# env / secrets
+.env
+.env.local
+
+# os
+.DS_Store
+
+# stray sandbox probe file (could not be removed from this filesystem)
+_probe.txt

@@ -1,0 +1,18 @@
+# Skill index (human-readable). The engine builds the live index by scanning each
+# SKILL.md's frontmatter, so this file is documentation — adding a skill file is
+# what adds a capability. Canonical skills live HERE (inside the package) so they
+# ship in the wheel. The planner reads the live index to SELECT skills per
+# component; reviewers load the skill body as their system prompt (read-only).
+version: 1
+domains:
+  appsec:
+    - appsec/threat-modeling      # base STRIDE method, always included
+    - appsec/secure-code-review
+    - appsec/api-security
+    - appsec/authentication
+  ai-security:
+    - ai-security/llm-top-10
+# Skill evolution: outcomes calibrate each skill's confidence_cap locally
+# (synthesis_engine/memory.py). New patterns become human-reviewed PRs that add
+# examples/ or a new skill file. Skill bodies never auto-merge — see CONTRIBUTING.md.
+# Every skill PR is checked by scripts/scan_skills.py in CI (injection + control-id gate).

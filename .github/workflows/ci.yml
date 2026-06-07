@@ -1,0 +1,65 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e '.[dev,mcp]'
+      - name: tests (offline, no key)
+        run: pytest -q
+
+  lint-type:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e '.[dev,mcp]'
+      - run: ruff check synthesis_engine scripts tests
+      - name: mypy (advisory)
+        run: mypy synthesis_engine
+        continue-on-error: true
+
+  skill-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
+      - name: skill injection-scan gate
+        run: python scripts/scan_skills.py
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build
+      - name: verify skills are packaged in the wheel
+        run: |
+          python - <<'PY'
+          import glob, zipfile, sys
+          whl = sorted(glob.glob("dist/*.whl"))[-1]
+          names = zipfile.ZipFile(whl).namelist()
+          skills = [n for n in names if "/skills/" in n and (n.endswith(".md") or n.endswith(".yaml"))]
+          print(f"{len(skills)} skill files in wheel")
+          sys.exit(0 if skills else 1)
+          PY

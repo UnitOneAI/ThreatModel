@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "synthesis-engine"
+dynamic = ["version"]
+description = "Open-source, MCP-first threat modeling + fixer engine (STRIDE, agentic loop, auto-evolving skills)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "UnitOne" }]
+keywords = ["security", "threat-modeling", "stride", "owasp", "mcp", "appsec", "sast"]
+classifiers = [
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Security",
+]
+dependencies = []  # core runs on the stdlib — offline, no deps
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.2.0"]
+# bundled local model (no API key): llama.cpp runtime + HF Hub download.
+# Default model: Qwen3-4B-Instruct (Apache-2.0); Foundation-Sec-8B available via profile.
+local = ["llama-cpp-python>=0.3.0", "huggingface_hub>=0.24"]
+# multi-instance deployments (beta; sqlite is the tested default)
+postgres = ["psycopg[binary]>=3.1"]
+dev = ["pytest>=7", "ruff>=0.5", "mypy>=1.8", "build>=1.0"]
+
+[project.scripts]
+synthesis = "synthesis_engine.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/UnitOneAI/synthesis-mcp"
+
+[tool.setuptools]
+packages = ["synthesis_engine"]
+
+[tool.setuptools.dynamic]
+version = { attr = "synthesis_engine.__version__" }
+
+[tool.setuptools.package-data]
+# ship the skills inside the wheel (arch review D1) + the typing marker
+synthesis_engine = ["py.typed", "skills/*.yaml", "skills/*/*.md"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "S", "UP"]
+ignore = ["S101"]  # asserts are fine
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "E501"]
+"synthesis_engine/analyze.py" = ["E501"]   # control-grounded template data tables
+"synthesis_engine/memory.py" = ["S608"]    # f-strings interpolate only the bound-param char + fixed table/col names; all user data is parameterized
+"synthesis_engine/llm.py" = ["S310"]       # urlopen targets are the configured provider endpoints
+"synthesis_engine/ingest.py" = ["S310"]    # urlopen targets api.github.com / user-supplied doc URLs (the tool's purpose)
+"synthesis_engine/mcp_server.py" = ["B006"]  # MCP tool default args are part of the tool schema and never mutated
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = false
+check_untyped_defs = false

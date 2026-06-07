@@ -1,0 +1,22 @@
+# Self-host: `docker compose run --rm synthesis analyze <repo>` for the CLI, or run
+# the MCP server (stdio) that an agent attaches to. The named volume gives sqlite the
+# real file locking it needs (do not point storage at a network/FUSE mount).
+services:
+  synthesis:
+    build: .
+    image: unitoneai/synthesis-engine:0.1.0
+    env_file:
+      - .env
+    volumes:
+      - synthesis-data:/data
+      - ./skills:/app/skills:ro
+      # rungs 1-3 sandbox: let the engine drive Docker on the host.
+      # (rungs 4-5 — exploit reproduction — use the managed gVisor/Firecracker tier.)
+      - /var/run/docker.sock:/var/run/docker.sock
+    # default command is `serve` (MCP stdio). Override for the CLI, e.g.:
+    #   docker compose run --rm synthesis analyze https://github.com/org/repo --mode fix
+    stdin_open: true
+    tty: true
+
+volumes:
+  synthesis-data:
