@@ -127,8 +127,9 @@ def _maybe_fetch_repo(url: str) -> dict[str, Any] | None:
 
 
 def _gh_headers() -> dict[str, str]:
+    from .config import get_config
     h = {"accept": "application/vnd.github+json", "user-agent": "synthesis-engine"}
-    tok = os.environ.get("GITHUB_TOKEN")
+    tok = get_config().github_token  # from Configure UI / settings.json / env
     if tok:
         h["authorization"] = f"Bearer {tok}"
     return h

@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from urllib.parse import urlparse
 
@@ -58,6 +59,7 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--mode", default="agentic", choices=["quick", "agentic", "fix"])
     a.add_argument("--focus", default="", help="threat actors / attack vectors you care about")
     a.add_argument("--json", action="store_true", help="print the full model JSON")
+    a.add_argument("--html", metavar="PATH", help="also write a visual HTML report to PATH")
     a.add_argument("--test", action="store_true",
                    help="CI/demo of the machinery only — TEMPLATED fixtures, not a real scan")
 
@@ -71,6 +73,16 @@ def main(argv: list[str] | None = None) -> int:
     g = ac.add_mutually_exclusive_group(required=True)
     g.add_argument("--accept", action="store_true")
     g.add_argument("--reject", action="store_true")
+
+    rp = sub.add_parser("report", help="render a stored model as a visual HTML report")
+    rp.add_argument("model_id")
+    rp.add_argument("-o", "--out", help="output HTML path (default: <model_id>.html)")
+    rp.add_argument("--open", action="store_true", help="open the report in a browser")
+
+    up = sub.add_parser("ui", help="launch the local web UI (threat modeling + fixing)")
+    up.add_argument("--host", default="127.0.0.1")
+    up.add_argument("--port", type=int, default=8765)
+    up.add_argument("--no-open", action="store_true", help="don't auto-open the browser")
 
     sub.add_parser("skills", help="list the live skill index")
     sub.add_parser("stats", help="show local skill confidence caps (evolution state)")
@@ -93,7 +105,33 @@ def main(argv: list[str] | None = None) -> int:
         if md.get("error"):
             print(md["error"], file=sys.stderr)
             return 2
+        if args.html:
+            from .report import render_html
+            with open(args.html, "w", encoding="utf-8") as fh:
+                fh.write(render_html(md))
+            print(f"HTML report → {args.html}")
         print(json.dumps(md, indent=2)) if args.json else _print_summary(md)
+        return 0
+
+    if args.cmd == "report":
+        from . import store
+        from .report import render_html
+        md = store.load_model(args.model_id)
+        if not md:
+            print(f"model {args.model_id} not found", file=sys.stderr)
+            return 2
+        out = args.out or f"{args.model_id}.html"
+        with open(out, "w", encoding="utf-8") as fh:
+            fh.write(render_html(md))
+        print(f"HTML report → {out}")
+        if args.open:
+            import webbrowser
+            webbrowser.open(f"file://{os.path.abspath(out)}")
+        return 0
+
+    if args.cmd == "ui":
+        from .ui import serve
+        serve(host=args.host, port=args.port, open_browser=not args.no_open)
         return 0
 
     if args.cmd == "fix":

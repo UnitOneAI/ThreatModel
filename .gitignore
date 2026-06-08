@@ -29,3 +29,6 @@ venv/
 
 # stray sandbox probe file (could not be removed from this filesystem)
 _probe.txt
+
+# generated demo captures (regenerate with `synthesis ui` / `synthesis report`)
+examples/app-*-snapshot.html

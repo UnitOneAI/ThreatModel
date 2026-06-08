@@ -7,6 +7,11 @@ breaking allowed).
 ## [Unreleased]
 
 ### Added
+- **Visual threat model**: Mermaid data-flow diagram (trust-zone subgraphs,
+  attacker/asset/exposed highlighting, control-labeled flows) + self-contained HTML
+  report (STRIDE matrix, threat actors, trust zones, OWASP coverage, threat table with
+  per-threat fix drawer). New `synthesis report`, `synthesis ui` (stdlib web app), and
+  `analyze --html`. Mermaid string is included in the model output (`mermaid` field).
 - **Multi-input threat modeling**: N GitHub repos + N design docs (file paths, URLs,
   or pasted text) merged into one model. CLI auto-detects inputs.
 - **Bundled local model** provider (`[local]` extra): runs a pinned GGUF via

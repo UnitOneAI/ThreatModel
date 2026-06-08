@@ -31,7 +31,7 @@ dev = ["pytest>=7", "ruff>=0.5", "mypy>=1.8", "build>=1.0"]
 synthesis = "synthesis_engine.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/UnitOneAI/synthesis-mcp"
+Homepage = "https://github.com/UnitOneAI/ThreatModel"
 
 [tool.setuptools]
 packages = ["synthesis_engine"]
@@ -41,7 +41,7 @@ version = { attr = "synthesis_engine.__version__" }
 
 [tool.setuptools.package-data]
 # ship the skills inside the wheel (arch review D1) + the typing marker
-synthesis_engine = ["py.typed", "skills/*.yaml", "skills/*/*.md"]
+synthesis_engine = ["py.typed", "skills/*.yaml", "skills/*/*.md", "assets/*.png"]
 
 [tool.ruff]
 line-length = 120
@@ -54,6 +54,8 @@ ignore = ["S101"]  # asserts are fine
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S", "E501"]
 "synthesis_engine/analyze.py" = ["E501"]   # control-grounded template data tables
+"synthesis_engine/report.py" = ["E501"]    # embedded HTML/CSS strings
+"synthesis_engine/ui.py" = ["E501", "S104"]  # embedded HTML; localhost bind is intentional
 "synthesis_engine/memory.py" = ["S608"]    # f-strings interpolate only the bound-param char + fixed table/col names; all user data is parameterized
 "synthesis_engine/llm.py" = ["S310"]       # urlopen targets are the configured provider endpoints
 "synthesis_engine/ingest.py" = ["S310"]    # urlopen targets api.github.com / user-supplied doc URLs (the tool's purpose)

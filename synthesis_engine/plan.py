@@ -44,8 +44,8 @@ def plan(
 
 
 def _llm_plan(dfd, skills, context, focus, llm: LLM) -> list[Job]:
-    index = [{"id": s.id, "triggers": sk.triggers, "title": sk.title}
-             for s, sk in ((sid, skills[sid]) for sid in skills)]
+    index = [{"id": sk.id, "triggers": sk.triggers, "title": sk.title}
+             for sk in skills.values()]
     system = (
         "You are a planning agent. Given a DFD and a skill index, assign which "
         "skills should review which components. Only use skill ids from the index "

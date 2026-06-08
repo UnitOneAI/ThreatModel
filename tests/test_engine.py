@@ -7,6 +7,7 @@ _TMP = tempfile.mkdtemp(prefix="synthesis-test-")
 os.environ["SYNTHESIS_DB"] = os.path.join(_TMP, "ig.db")
 os.environ["SYNTHESIS_MODELS_DIR"] = os.path.join(_TMP, "models")
 os.environ["SYNTHESIS_AUDIT_LOG"] = os.path.join(_TMP, "audit.log")
+os.environ["SYNTHESIS_SETTINGS"] = os.path.join(_TMP, "settings.json")  # isolate from real ~/.synthesis
 os.environ.pop("ANTHROPIC_API_KEY", None)
 os.environ.pop("OPENAI_BASE_URL", None)
 os.environ.pop("SYNTHESIS_TEST_MODE", None)

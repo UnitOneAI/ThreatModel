@@ -41,6 +41,8 @@ def run_threat_model(
     db_path: str | None = None,
     persist: bool = True,
     allow_test: bool = False,
+    provider: str | None = None,
+    model: str | None = None,
 ) -> dict[str, Any]:
     cfg = get_config()
     configure_logging(cfg.log_level, cfg.log_format)
@@ -52,15 +54,18 @@ def run_threat_model(
         docs.append(doc)
     trace = RunTrace()
     try:
-        llm = get_llm(allow_test=allow_test)
+        llm = get_llm(allow_test=allow_test, provider=provider, model=model)
     except NoProviderError as e:
         return {"error": str(e)}
+    model_used = getattr(llm, "model", None) or model
     if not llm.scripted:  # cap real LLM calls per run (cost guard, arch review S3)
         llm = BudgetedLLM(llm, cfg.max_llm_calls)
 
-    audit.record("scan_start", mode=mode, repos=repos, docs=len(docs), provider=llm.name)
+    audit.record("scan_start", mode=mode, repos=repos, docs=len(docs),
+                 provider=llm.name, model=model_used)
     try:
-        md = _run_pipeline(repos, docs, mode, focus, skills_dir, db_path, persist, llm, cfg, trace)
+        md = _run_pipeline(repos, docs, mode, focus, skills_dir, db_path, persist, llm,
+                           cfg, trace, model_used)
     except BudgetExceeded as e:
         audit.record("scan_aborted", reason="budget", detail=str(e))
         return {"error": str(e)}
@@ -69,7 +74,8 @@ def run_threat_model(
     return md
 
 
-def _run_pipeline(repos, docs, mode, focus, skills_dir, db_path, persist, llm, cfg, trace):
+def _run_pipeline(repos, docs, mode, focus, skills_dir, db_path, persist, llm, cfg, trace,
+                  model_used=None):
     skills = load_skills(skills_dir)
     graph = IntentGraph(db_path)
 
@@ -112,6 +118,7 @@ def _run_pipeline(repos, docs, mode, focus, skills_dir, db_path, persist, llm, c
     graph.close()
     md = model.to_dict()
     md["provider"] = llm.name
+    md["model"] = model_used
     if llm.scripted:  # test mode — label loudly so it's never mistaken for a scan
         md["demo"] = True
         md["warning"] = _TEST_WARNING
@@ -132,13 +139,20 @@ def run_fix(
     target = next((t for t in model.threats if t.id == threat_id), None)
     if not target:
         return {"error": f"threat {threat_id} not in model"}
+    # reuse the same provider/model the threat model was built with
+    prov = {"anthropic": "anthropic", "openai-compatible": "openai",
+            "local": "local", "test": "test"}.get(md.get("provider"))
+    allow_test = prov == "test"
     try:
-        llm = get_llm()
+        llm = get_llm(allow_test=allow_test, provider=(None if allow_test else prov),
+                      model=md.get("model"))
     except NoProviderError as e:
         return {"error": str(e)}
     fix_threats(model.dfd, [target], llm, ecosystem=_ecosystem(md.get("design", {}).get("doc_excerpt", "")),
                 max_fixes=1, trace=model.trace)
     out = model.to_dict()
+    out["model"] = md.get("model")
+    out["provider"] = md.get("provider")
     out["_path"] = store.save_model(out, models_dir)
     return out
 

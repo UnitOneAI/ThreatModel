@@ -1,0 +1,963 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Threat Model · tm-ce003957</title><style>
+:root{
+  --bg:#f6f8fb; --surface:#ffffff; --surface-2:#f1f4f9;
+  --border:rgba(15,23,42,.10); --border-strong:rgba(15,23,42,.18);
+  --text:#0f172a; --text-muted:rgba(15,23,42,.68); --text-dim:rgba(15,23,42,.48);
+  --teal:#10a37f; --coral:#e11d48; --amber:#d97706; --violet:#7c3aed;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+.mono,.lbl,.slbl,.brand,.src,.diff,.ovh{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.topbar{display:flex;align-items:center;gap:14px;padding:14px 28px;border-bottom:1px solid var(--border);background:var(--surface)}
+.logo{width:30px;height:30px;border-radius:7px}
+.brand{font-size:10px;letter-spacing:.24em;color:var(--teal);font-weight:700}
+.htitle{font-size:17px;font-weight:700;margin-top:1px} .topbar .meta{margin-left:auto;font-size:11px;color:var(--text-dim)}
+.content{padding:6px 0 60px}
+.demo{background:rgba(239,83,80,.16);color:var(--coral);border-bottom:1px solid var(--coral);padding:9px 28px;font-size:12px;font-weight:600}
+.stats{display:flex;gap:12px;flex-wrap:wrap;padding:18px 28px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 18px;min-width:118px}
+.num{font-size:24px;font-weight:700}
+.slbl{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-dim);margin-top:4px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin:14px 28px;padding:18px 22px}
+.lbl{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-dim);margin-bottom:14px}
+.kv{display:flex;gap:14px;padding:4px 0;font-size:14px}
+.kv span{color:var(--text-dim);min-width:90px;font-size:12px}
+.dim{color:var(--text-dim);font-size:12px}
+.cols3{display:grid;gap:12px;grid-template-columns:repeat(3,1fr)}
+@media(max-width:820px){.cols3{grid-template-columns:1fr}}
+.ov{border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:12px}
+.ovh{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-dim);margin-bottom:8px}
+.ovl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:12px}
+.aname{color:var(--text);font-weight:600} .bflow{font-family:ui-monospace,monospace;font-size:11px;color:var(--text)}
+.gap{color:var(--coral)}
+.ochips{display:flex;flex-wrap:wrap;gap:6px}
+.ochip{border:1px solid var(--amber);color:var(--amber);border-radius:6px;padding:1px 7px;font-size:10px;font-family:ui-monospace,monospace}
+.legend{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;font-size:11px}
+.lg{padding:2px 9px;border-radius:6px;border:1px solid var(--border-strong);color:var(--text-muted)}
+.lg.cov{border-color:var(--teal);color:var(--teal)} .lg.gap{border-color:var(--amber);color:var(--amber)} .lg.na{color:var(--text-dim)}
+.mermaid-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;overflow-x:auto}
+#mmd svg{max-width:100%}
+#mmderr{color:var(--coral);font-size:11px;font-family:ui-monospace,monospace;margin-top:8px}
+details{margin-top:10px} summary{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-dim);cursor:pointer}
+summary:hover{color:var(--text-muted)}
+.src{font-size:11px;background:var(--surface-2);border-radius:8px;padding:12px;overflow-x:auto;color:var(--text-muted);white-space:pre;margin-top:8px}
+table.matrix{border-collapse:collapse;width:100%;font-size:13px}
+.matrix th,.matrix td{border:1px solid var(--border);padding:7px 9px;text-align:center}
+.matrix th{color:var(--text-dim);font-size:11px;font-weight:600}
+.matrix th.rl,.matrix td.rl{text-align:left;min-width:240px}
+.matrix td.cov{color:var(--teal);font-weight:700} .matrix td.gap{color:var(--amber)} .matrix td.na{color:var(--text-dim)}
+.threat{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;background:var(--surface)}
+.trow{display:flex;gap:12px;align-items:center;padding:10px 12px;cursor:pointer}
+.trow:hover{background:var(--surface-2)}
+.sev{color:#0b0f1a;border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;text-transform:uppercase}
+.reach{font-size:11px;font-weight:600;min-width:90px;text-transform:uppercase;letter-spacing:.06em}
+.tn{font-weight:600;flex:1} .tstride{font-size:12px;color:var(--text-muted)} .tctrl{font-size:11px}
+.tdrawer{display:none;padding:14px 16px;background:var(--surface-2);border-top:1px solid var(--border);font-size:13px}
+.tdrawer.open{display:block}
+.ev,.mit{margin-bottom:8px;color:var(--text-muted)} .ev b,.mit b{color:var(--text)}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.badge{font-size:10px;border-radius:5px;padding:2px 8px;background:var(--surface);border:1px solid var(--border);color:var(--text-muted)}
+.badge.ok{border-color:var(--teal);color:var(--teal)} .badge.warn{border-color:var(--amber);color:var(--amber)}
+.diffh{font-weight:600;margin:6px 0 4px} .diff{background:#0b0f1a;color:#e2e8f0;padding:12px;border-radius:8px;overflow:auto;font-size:12px;white-space:pre-wrap;border:1px solid var(--border)}
+.fixform{margin-top:10px}
+.fixform button{background:var(--teal);color:#06251c;border:0;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.06em}
+.fixform button:hover{filter:brightness(1.08)}
+</style></head><body>
+<header class="topbar"><img src="data:image/png;base64,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" alt="UnitOne" class="logo"><div><div class="brand">UNITONE · SYNTHESIS</div>
+<div class="htitle">Threat Model</div></div>
+<div class="meta">tm-ce003957</div></header><main class="content"><div class="demo">⚠ TEST MODE — templated fixtures, NOT a real scan of the target. Configure an LLM provider (ANTHROPIC_API_KEY, an OpenAI-compatible endpoint, or the [local] model) for real analysis.</div><section class="stats">
+  <div class="stat"><div class="num" style="color:var(--text)">6</div><div class="slbl">components</div></div>
+  <div class="stat"><div class="num" style="color:var(--text)">65</div><div class="slbl">threats</div></div>
+  <div class="stat"><div class="num" style="color:var(--coral)">65</div><div class="slbl">exposed</div></div>
+  <div class="stat"><div class="num" style="color:var(--teal)">23/30</div><div class="slbl">stride covered</div></div>
+  <div class="stat"><div class="num" style="color:var(--amber)">7</div><div class="slbl">coverage gaps</div></div>
+</section><section class="card"><div class="lbl">Scope · fix · provider test</div>
+  <div class="kv"><span>repos</span><div>—</div></div>
+  <div class="kv"><span>docs</span><div>inline</div></div>
+  <div class="kv"><span>focus</span><div>—</div></div>
+</section><section class="card"><div class="lbl">Data flow diagram · Mermaid</div>
+  <div class="legend">
+    <span class="lg" style="border-color:var(--coral)">attacker</span>
+    <span class="lg" style="border-color:var(--violet)">process</span>
+    <span class="lg" style="border-color:var(--amber)">data store</span>
+    <span class="lg" style="border:1px dashed var(--coral)">exposed</span>
+    <span class="dim">dashed edge = weak/none control on a boundary crossing</span>
+  </div>
+  <div class="mermaid-box"><div id="mmd"></div><div id="mmderr"></div>
+    <details><summary>▸ Mermaid source</summary><pre class="src">flowchart LR
+  subgraph Z0[&quot;trust zone: untrusted&quot;]
+    N0[&quot;Unauthenticated Network Peer&quot;]
+  end
+  subgraph Z1[&quot;trust zone: dmz&quot;]
+    N1((&quot;API Gateway&quot;))
+  end
+  subgraph Z2[&quot;trust zone: app&quot;]
+    N2((&quot;Auth / Session Service&quot;))
+    N3((&quot;Upload / File Handler&quot;))
+    N4((&quot;LLM / Agent Service&quot;))
+  end
+  subgraph Z3[&quot;trust zone: data&quot;]
+    N5[(&quot;Primary Database&quot;)]
+  end
+  N0 -.-&gt;|HTTPS request / partial| N1
+  N1 -.-&gt;|internal call / none| N2
+  N2 -.-&gt;|read/write / none| N5
+  N1 -.-&gt;|internal call / none| N3
+  N3 -.-&gt;|read/write / none| N5
+  N1 -.-&gt;|internal call / none| N4
+  N4 -.-&gt;|read/write / none| N5
+
+  classDef attacker fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d
+  classDef asset fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
+  classDef proc fill:#e0e7ff,stroke:#4f46e5,color:#3730a3
+  classDef exposed stroke:#dc2626,stroke-width:4px,stroke-dasharray:4 2
+  class N1,N2,N3,N4 proc
+  class N5 asset
+  class N0 attacker
+  class N3,N5,N1,N0,N4,N2 exposed</pre></details>
+  </div>
+</section><section class="card"><div class="lbl">Threat analysis · before mitigation</div>
+  <div class="cols3">
+    <div class="ov"><div class="ovh">OWASP rating</div><div class="ochips"><span class="ochip">A01:2021 · 9</span><span class="ochip">A02:2021 · 2</span><span class="ochip">A03:2021 · 4</span><span class="ochip">A04:2021 · 12</span><span class="ochip">A07:2021 · 14</span><span class="ochip">A08:2021 · 4</span><span class="ochip">A10:2021 · 4</span><span class="ochip">LLM01 · 4</span><span class="ochip">LLM02 · 4</span><span class="ochip">LLM06 · 4</span><span class="ochip">LLM10 · 4</span></div></div>
+    <div class="ov"><div class="ovh">Threat actors</div><ul class="ovl"><li><span class="aname">External Attacker (Targeted)</span> <span class="dim">· medium-high</span><div class="dim">motivation: IP theft, espionage, disruption · 19 threat(s)</div></li><li><span class="aname">External Attacker (Opportunistic)</span> <span class="dim">· low-medium</span><div class="dim">motivation: financial gain, data theft · 16 threat(s)</div></li><li><span class="aname">Automated Bot/Scraper</span> <span class="dim">· low</span><div class="dim">motivation: resource abuse, credential stuffing · 13 threat(s)</div></li><li><span class="aname">AI/LLM Threat Actor</span> <span class="dim">· medium-high</span><div class="dim">motivation: prompt injection, data exfiltration, model abuse · 12 threat(s)</div></li><li><span class="aname">Malicious Insider</span> <span class="dim">· high (privileged access)</span><div class="dim">motivation: financial gain, sabotage · 5 threat(s)</div></li></ul></div>
+    <div class="ov"><div class="ovh">Trust boundaries</div><ul class="ovl"><li><span class="bflow">Unauthenticated Network Peer (untrusted) → API Gateway (dmz)</span><div class="dim">control: partial <span class="gap">· gap: unauthenticated/weak crossing (partial)</span></div></li><li><span class="bflow">API Gateway (dmz) → Auth / Session Service (app)</span><div class="dim">control: none <span class="gap">· gap: unauthenticated/weak crossing (none)</span></div></li><li><span class="bflow">Auth / Session Service (app) → Primary Database (data)</span><div class="dim">control: none <span class="gap">· gap: unauthenticated/weak crossing (none)</span></div></li><li><span class="bflow">API Gateway (dmz) → Upload / File Handler (app)</span><div class="dim">control: none <span class="gap">· gap: unauthenticated/weak crossing (none)</span></div></li><li><span class="bflow">Upload / File Handler (app) → Primary Database (data)</span><div class="dim">control: none <span class="gap">· gap: unauthenticated/weak crossing (none)</span></div></li><li><span class="bflow">API Gateway (dmz) → LLM / Agent Service (app)</span><div class="dim">control: none <span class="gap">· gap: unauthenticated/weak crossing (none)</span></div></li><li><span class="bflow">LLM / Agent Service (app) → Primary Database (data)</span><div class="dim">control: none <span class="gap">· gap: unauthenticated/weak crossing (none)</span></div></li></ul></div>
+  </div>
+</section><section class="card"><div class="lbl">STRIDE coverage matrix</div>
+  <div class="legend"><span class="lg cov">✓ covered</span><span class="lg gap">• gap</span><span class="lg na">· n/a</span></div>
+  <table class="matrix"><thead><tr><th class="rl">element</th><th title="Spoofing">S</th><th title="Tampering">T</th><th title="Repudiation">R</th><th title="Info Disclosure">I</th><th title="Denial of Service">D</th><th title="Elevation of Priv">E</th></tr></thead><tbody><tr><td class="rl">Unauthenticated Network Peer <span class="dim">external_entity</span></td><td class="cov" title="covered">✓</td><td class="na" title="n_a">·</td><td class="gap" title="gap">•</td><td class="na" title="n_a">·</td><td class="na" title="n_a">·</td><td class="na" title="n_a">·</td></tr><tr><td class="rl">API Gateway <span class="dim">process</span></td><td class="cov" title="covered">✓</td><td class="cov" title="covered">✓</td><td class="gap" title="gap">•</td><td class="cov" title="covered">✓</td><td class="cov" title="covered">✓</td><td class="cov" title="covered">✓</td></tr><tr><td class="rl">Auth / Session Service <span class="dim">process</span></td><td class="cov" title="covered">✓</td><td class="cov" title="covered">✓</td><td class="gap" title="gap">•</td><td class="cov" title="covered">✓</td><td class="cov" title="covered">✓</td><td class="cov" title="covered">✓</td></tr><tr><td class="rl">Upload / File Handler <span class="dim">process</span></td><td class="cov" title="covered">✓</td><td class="cov" title="covered">✓</td><td class="gap" title="gap">•</td><td class="cov" title="covered">✓</td><td class="cov" title="covered">✓</td><td class="cov" title="covered">✓</td></tr><tr><td class="rl">LLM / Agent Service <span class="dim">process</span></td><td class="cov" title="covered">✓</td><td class="cov" title="covered">✓</td><td class="gap" title="gap">•</td><td class="cov" title="covered">✓</td><td class="cov" title="covered">✓</td><td class="cov" title="covered">✓</td></tr><tr><td class="rl">Primary Database <span class="dim">data_store</span></td><td class="na" title="n_a">·</td><td class="cov" title="covered">✓</td><td class="gap" title="gap">•</td><td class="cov" title="covered">✓</td><td class="gap" title="gap">•</td><td class="na" title="n_a">·</td></tr></tbody></table>
+</section><section class="card"><div class="lbl">Threats · 65</div><div class="threat">
+  <div class="trow" onclick="tg(0)">
+    <span class="sev" style="background:var(--coral)">critical</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">SQL injection at API Gateway</span>
+    <span class="tstride">tampering</span>
+    <span class="dim tctrl">A03:2021 · CWE-89 · T1190</span>
+  </div>
+  <div class="tdrawer" id="d0"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/secure-code-review</span><span class="badge">synthetic-pr://t-e2e835b3</span></div>
+  <div class="mit"><b>Mitigation</b> · Parameterize all queries; no string-built SQL.
+
+Security regression: PoC not yet replayed in this run — install Docker for rungs 1-3; managed tier for rung 4. Behavior preservation: UNVERIFIED — no customer functional suite is wired; human review required before merge.</div>
+  <div class="diffh">Proposed fix</div><pre class="diff"># synthetic patch for t-e2e835b3 (SQL injection at API Gateway)
+# applies the mitigation: Parameterize all queries; no string-built SQL.
+# grounded in A03:2021; replace with the real diff against API Gateway.
++ // A03:2021: enforce mitigation at API Gateway
++ test(&#x27;regression: SQL injection at API Gateway no longer reproduces&#x27;, () =&gt; expect(exploit_t_e2e835b3()).toBe(false));
+</pre></div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(1)">
+    <span class="sev" style="background:var(--coral)">critical</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">SQL injection at Auth / Session Service</span>
+    <span class="tstride">tampering</span>
+    <span class="dim tctrl">A03:2021 · CWE-89 · T1190</span>
+  </div>
+  <div class="tdrawer" id="d1"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/secure-code-review</span><span class="badge">synthetic-pr://t-c83f61c7</span></div>
+  <div class="mit"><b>Mitigation</b> · Parameterize all queries; no string-built SQL.
+
+Security regression: PoC not yet replayed in this run — install Docker for rungs 1-3; managed tier for rung 4. Behavior preservation: UNVERIFIED — no customer functional suite is wired; human review required before merge.</div>
+  <div class="diffh">Proposed fix</div><pre class="diff"># synthetic patch for t-c83f61c7 (SQL injection at Auth / Session Service)
+# applies the mitigation: Parameterize all queries; no string-built SQL.
+# grounded in A03:2021; replace with the real diff against Auth / Session Service.
++ // A03:2021: enforce mitigation at Auth / Session Service
++ test(&#x27;regression: SQL injection at Auth / Session Service no longer reproduces&#x27;, () =&gt; expect(exploit_t_c83f61c7()).toBe(false));
+</pre></div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(2)">
+    <span class="sev" style="background:var(--coral)">critical</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">SQL injection at Upload / File Handler</span>
+    <span class="tstride">tampering</span>
+    <span class="dim tctrl">A03:2021 · CWE-89 · T1190</span>
+  </div>
+  <div class="tdrawer" id="d2"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/secure-code-review</span><span class="badge">synthetic-pr://t-0a98300e</span></div>
+  <div class="mit"><b>Mitigation</b> · Parameterize all queries; no string-built SQL.
+
+Security regression: PoC not yet replayed in this run — install Docker for rungs 1-3; managed tier for rung 4. Behavior preservation: UNVERIFIED — no customer functional suite is wired; human review required before merge.</div>
+  <div class="diffh">Proposed fix</div><pre class="diff"># synthetic patch for t-0a98300e (SQL injection at Upload / File Handler)
+# applies the mitigation: Parameterize all queries; no string-built SQL.
+# grounded in A03:2021; replace with the real diff against Upload / File Handler.
++ // A03:2021: enforce mitigation at Upload / File Handler
++ test(&#x27;regression: SQL injection at Upload / File Handler no longer reproduces&#x27;, () =&gt; expect(exploit_t_0a98300e()).toBe(false));
+</pre></div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(3)">
+    <span class="sev" style="background:var(--coral)">critical</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">SQL injection at LLM / Agent Service</span>
+    <span class="tstride">tampering</span>
+    <span class="dim tctrl">A03:2021 · CWE-89 · T1190</span>
+  </div>
+  <div class="tdrawer" id="d3"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/secure-code-review</span><span class="badge">synthetic-pr://t-0cc7551a</span></div>
+  <div class="mit"><b>Mitigation</b> · Parameterize all queries; no string-built SQL.
+
+Security regression: PoC not yet replayed in this run — install Docker for rungs 1-3; managed tier for rung 4. Behavior preservation: UNVERIFIED — no customer functional suite is wired; human review required before merge.</div>
+  <div class="diffh">Proposed fix</div><pre class="diff"># synthetic patch for t-0cc7551a (SQL injection at LLM / Agent Service)
+# applies the mitigation: Parameterize all queries; no string-built SQL.
+# grounded in A03:2021; replace with the real diff against LLM / Agent Service.
++ // A03:2021: enforce mitigation at LLM / Agent Service
++ test(&#x27;regression: SQL injection at LLM / Agent Service no longer reproduces&#x27;, () =&gt; expect(exploit_t_0cc7551a()).toBe(false));
+</pre></div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(4)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Prompt injection at API Gateway</span>
+    <span class="tstride">tampering</span>
+    <span class="dim tctrl">LLM01 · CWE-20</span>
+  </div>
+  <div class="tdrawer" id="d4"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span><span class="badge">synthetic-pr://t-38440fed</span></div>
+  <div class="mit"><b>Mitigation</b> · Instruction-hierarchy boundaries; treat retrieved data as untrusted.
+
+Security regression: PoC not yet replayed in this run — install Docker for rungs 1-3; managed tier for rung 4. Behavior preservation: UNVERIFIED — no customer functional suite is wired; human review required before merge.</div>
+  <div class="diffh">Proposed fix</div><pre class="diff"># synthetic patch for t-38440fed (Prompt injection at API Gateway)
+# applies the mitigation: Instruction-hierarchy boundaries; treat retrieved data as untrusted.
+# grounded in LLM01; replace with the real diff against API Gateway.
++ // LLM01: enforce mitigation at API Gateway
++ test(&#x27;regression: Prompt injection at API Gateway no longer reproduces&#x27;, () =&gt; expect(exploit_t_38440fed()).toBe(false));
+</pre></div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(5)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Sensitive information disclosure via API Gateway</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">LLM02 · CWE-200</span>
+  </div>
+  <div class="tdrawer" id="d5"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Redact secrets/PII from context; output filtering.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(6)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Excessive agency / tool abuse at API Gateway</span>
+    <span class="tstride">elevation_of_privilege</span>
+    <span class="dim tctrl">LLM06 · CWE-269</span>
+  </div>
+  <div class="tdrawer" id="d6"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Least-privilege tools; human approval on high-impact actions.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(7)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Weak token validation at API Gateway</span>
+    <span class="tstride">spoofing</span>
+    <span class="dim tctrl">A07:2021 · CWE-287 · T1556</span>
+  </div>
+  <div class="tdrawer" id="d7"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/authentication</span></div>
+  <div class="mit"><b>Mitigation</b> · Verify signature, issuer, audience and expiry; reject &#x27;alg=none&#x27;.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(8)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Unauthenticated request accepted at API Gateway</span>
+    <span class="tstride">spoofing</span>
+    <span class="dim tctrl">A07:2021 · CWE-306 · T1190</span>
+  </div>
+  <div class="tdrawer" id="d8"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Require authenticated, mutually-verified identity on all inbound calls.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(9)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Privilege escalation via missing authorization at API Gateway</span>
+    <span class="tstride">elevation_of_privilege</span>
+    <span class="dim tctrl">A01:2021 · CWE-269 · T1078</span>
+  </div>
+  <div class="tdrawer" id="d9"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Enforce per-action authorization checks server-side.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(10)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Insecure deserialization at API Gateway</span>
+    <span class="tstride">tampering</span>
+    <span class="dim tctrl">A08:2021 · CWE-502 · T1059</span>
+  </div>
+  <div class="tdrawer" id="d10"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/secure-code-review</span></div>
+  <div class="mit"><b>Mitigation</b> · Reject untrusted serialized input; use safe formats.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(11)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Unrestricted file upload at API Gateway</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">A04:2021 · CWE-20</span>
+  </div>
+  <div class="tdrawer" id="d11"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/secure-code-review</span></div>
+  <div class="mit"><b>Mitigation</b> · Validate type/size; store off web root; scan content.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(12)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Broken authentication on API at API Gateway</span>
+    <span class="tstride">spoofing</span>
+    <span class="dim tctrl">A07:2021 · CWE-287 · T1078</span>
+  </div>
+  <div class="tdrawer" id="d12"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Validate tokens on every request; short-lived, signed, audience-scoped.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(13)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">IDOR — broken object-level authorization at API Gateway</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">A01:2021 · CWE-639</span>
+  </div>
+  <div class="tdrawer" id="d13"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Check ownership of every object id against the caller.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(14)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">SSRF via API Gateway</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">A10:2021 · CWE-918</span>
+  </div>
+  <div class="tdrawer" id="d14"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Allowlist outbound hosts; block link-local/metadata ranges.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(15)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Prompt injection at Auth / Session Service</span>
+    <span class="tstride">tampering</span>
+    <span class="dim tctrl">LLM01 · CWE-20</span>
+  </div>
+  <div class="tdrawer" id="d15"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Instruction-hierarchy boundaries; treat retrieved data as untrusted.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(16)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Sensitive information disclosure via Auth / Session Service</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">LLM02 · CWE-200</span>
+  </div>
+  <div class="tdrawer" id="d16"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Redact secrets/PII from context; output filtering.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(17)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Excessive agency / tool abuse at Auth / Session Service</span>
+    <span class="tstride">elevation_of_privilege</span>
+    <span class="dim tctrl">LLM06 · CWE-269</span>
+  </div>
+  <div class="tdrawer" id="d17"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Least-privilege tools; human approval on high-impact actions.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(18)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Weak token validation at Auth / Session Service</span>
+    <span class="tstride">spoofing</span>
+    <span class="dim tctrl">A07:2021 · CWE-287 · T1556</span>
+  </div>
+  <div class="tdrawer" id="d18"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/authentication</span></div>
+  <div class="mit"><b>Mitigation</b> · Verify signature, issuer, audience and expiry; reject &#x27;alg=none&#x27;.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(19)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Unauthenticated request accepted at Auth / Session Service</span>
+    <span class="tstride">spoofing</span>
+    <span class="dim tctrl">A07:2021 · CWE-306 · T1190</span>
+  </div>
+  <div class="tdrawer" id="d19"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Require authenticated, mutually-verified identity on all inbound calls.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(20)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Privilege escalation via missing authorization at Auth / Session Service</span>
+    <span class="tstride">elevation_of_privilege</span>
+    <span class="dim tctrl">A01:2021 · CWE-269 · T1078</span>
+  </div>
+  <div class="tdrawer" id="d20"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Enforce per-action authorization checks server-side.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(21)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Insecure deserialization at Auth / Session Service</span>
+    <span class="tstride">tampering</span>
+    <span class="dim tctrl">A08:2021 · CWE-502 · T1059</span>
+  </div>
+  <div class="tdrawer" id="d21"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/secure-code-review</span></div>
+  <div class="mit"><b>Mitigation</b> · Reject untrusted serialized input; use safe formats.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(22)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Unrestricted file upload at Auth / Session Service</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">A04:2021 · CWE-20</span>
+  </div>
+  <div class="tdrawer" id="d22"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/secure-code-review</span></div>
+  <div class="mit"><b>Mitigation</b> · Validate type/size; store off web root; scan content.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(23)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Broken authentication on API at Auth / Session Service</span>
+    <span class="tstride">spoofing</span>
+    <span class="dim tctrl">A07:2021 · CWE-287 · T1078</span>
+  </div>
+  <div class="tdrawer" id="d23"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Validate tokens on every request; short-lived, signed, audience-scoped.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(24)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">IDOR — broken object-level authorization at Auth / Session Service</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">A01:2021 · CWE-639</span>
+  </div>
+  <div class="tdrawer" id="d24"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Check ownership of every object id against the caller.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(25)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">SSRF via Auth / Session Service</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">A10:2021 · CWE-918</span>
+  </div>
+  <div class="tdrawer" id="d25"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Allowlist outbound hosts; block link-local/metadata ranges.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(26)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Prompt injection at Upload / File Handler</span>
+    <span class="tstride">tampering</span>
+    <span class="dim tctrl">LLM01 · CWE-20</span>
+  </div>
+  <div class="tdrawer" id="d26"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Instruction-hierarchy boundaries; treat retrieved data as untrusted.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(27)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Sensitive information disclosure via Upload / File Handler</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">LLM02 · CWE-200</span>
+  </div>
+  <div class="tdrawer" id="d27"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Redact secrets/PII from context; output filtering.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(28)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Excessive agency / tool abuse at Upload / File Handler</span>
+    <span class="tstride">elevation_of_privilege</span>
+    <span class="dim tctrl">LLM06 · CWE-269</span>
+  </div>
+  <div class="tdrawer" id="d28"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Least-privilege tools; human approval on high-impact actions.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(29)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Weak token validation at Upload / File Handler</span>
+    <span class="tstride">spoofing</span>
+    <span class="dim tctrl">A07:2021 · CWE-287 · T1556</span>
+  </div>
+  <div class="tdrawer" id="d29"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/authentication</span></div>
+  <div class="mit"><b>Mitigation</b> · Verify signature, issuer, audience and expiry; reject &#x27;alg=none&#x27;.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(30)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Unauthenticated request accepted at Upload / File Handler</span>
+    <span class="tstride">spoofing</span>
+    <span class="dim tctrl">A07:2021 · CWE-306 · T1190</span>
+  </div>
+  <div class="tdrawer" id="d30"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Require authenticated, mutually-verified identity on all inbound calls.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(31)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Privilege escalation via missing authorization at Upload / File Handler</span>
+    <span class="tstride">elevation_of_privilege</span>
+    <span class="dim tctrl">A01:2021 · CWE-269 · T1078</span>
+  </div>
+  <div class="tdrawer" id="d31"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Enforce per-action authorization checks server-side.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(32)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Insecure deserialization at Upload / File Handler</span>
+    <span class="tstride">tampering</span>
+    <span class="dim tctrl">A08:2021 · CWE-502 · T1059</span>
+  </div>
+  <div class="tdrawer" id="d32"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/secure-code-review</span></div>
+  <div class="mit"><b>Mitigation</b> · Reject untrusted serialized input; use safe formats.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(33)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Unrestricted file upload at Upload / File Handler</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">A04:2021 · CWE-20</span>
+  </div>
+  <div class="tdrawer" id="d33"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/secure-code-review</span></div>
+  <div class="mit"><b>Mitigation</b> · Validate type/size; store off web root; scan content.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(34)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Broken authentication on API at Upload / File Handler</span>
+    <span class="tstride">spoofing</span>
+    <span class="dim tctrl">A07:2021 · CWE-287 · T1078</span>
+  </div>
+  <div class="tdrawer" id="d34"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Validate tokens on every request; short-lived, signed, audience-scoped.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(35)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">IDOR — broken object-level authorization at Upload / File Handler</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">A01:2021 · CWE-639</span>
+  </div>
+  <div class="tdrawer" id="d35"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Check ownership of every object id against the caller.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(36)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">SSRF via Upload / File Handler</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">A10:2021 · CWE-918</span>
+  </div>
+  <div class="tdrawer" id="d36"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Allowlist outbound hosts; block link-local/metadata ranges.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(37)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Prompt injection at LLM / Agent Service</span>
+    <span class="tstride">tampering</span>
+    <span class="dim tctrl">LLM01 · CWE-20</span>
+  </div>
+  <div class="tdrawer" id="d37"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Instruction-hierarchy boundaries; treat retrieved data as untrusted.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(38)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Sensitive information disclosure via LLM / Agent Service</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">LLM02 · CWE-200</span>
+  </div>
+  <div class="tdrawer" id="d38"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Redact secrets/PII from context; output filtering.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(39)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Excessive agency / tool abuse at LLM / Agent Service</span>
+    <span class="tstride">elevation_of_privilege</span>
+    <span class="dim tctrl">LLM06 · CWE-269</span>
+  </div>
+  <div class="tdrawer" id="d39"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Least-privilege tools; human approval on high-impact actions.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(40)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Weak token validation at LLM / Agent Service</span>
+    <span class="tstride">spoofing</span>
+    <span class="dim tctrl">A07:2021 · CWE-287 · T1556</span>
+  </div>
+  <div class="tdrawer" id="d40"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/authentication</span></div>
+  <div class="mit"><b>Mitigation</b> · Verify signature, issuer, audience and expiry; reject &#x27;alg=none&#x27;.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(41)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Unauthenticated request accepted at LLM / Agent Service</span>
+    <span class="tstride">spoofing</span>
+    <span class="dim tctrl">A07:2021 · CWE-306 · T1190</span>
+  </div>
+  <div class="tdrawer" id="d41"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Require authenticated, mutually-verified identity on all inbound calls.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(42)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Privilege escalation via missing authorization at LLM / Agent Service</span>
+    <span class="tstride">elevation_of_privilege</span>
+    <span class="dim tctrl">A01:2021 · CWE-269 · T1078</span>
+  </div>
+  <div class="tdrawer" id="d42"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Enforce per-action authorization checks server-side.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(43)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Insecure deserialization at LLM / Agent Service</span>
+    <span class="tstride">tampering</span>
+    <span class="dim tctrl">A08:2021 · CWE-502 · T1059</span>
+  </div>
+  <div class="tdrawer" id="d43"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/secure-code-review</span></div>
+  <div class="mit"><b>Mitigation</b> · Reject untrusted serialized input; use safe formats.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(44)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Unrestricted file upload at LLM / Agent Service</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">A04:2021 · CWE-20</span>
+  </div>
+  <div class="tdrawer" id="d44"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/secure-code-review</span></div>
+  <div class="mit"><b>Mitigation</b> · Validate type/size; store off web root; scan content.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(45)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Broken authentication on API at LLM / Agent Service</span>
+    <span class="tstride">spoofing</span>
+    <span class="dim tctrl">A07:2021 · CWE-287 · T1078</span>
+  </div>
+  <div class="tdrawer" id="d45"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Validate tokens on every request; short-lived, signed, audience-scoped.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(46)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">IDOR — broken object-level authorization at LLM / Agent Service</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">A01:2021 · CWE-639</span>
+  </div>
+  <div class="tdrawer" id="d46"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Check ownership of every object id against the caller.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(47)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">SSRF via LLM / Agent Service</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">A10:2021 · CWE-918</span>
+  </div>
+  <div class="tdrawer" id="d47"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Allowlist outbound hosts; block link-local/metadata ranges.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(48)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Credential store exposure at Primary Database</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">A02:2021 · CWE-311</span>
+  </div>
+  <div class="tdrawer" id="d48"><div class="ev"><b>Evidence</b> · data_store &#x27;Primary Database&#x27; in zone &#x27;data&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/authentication</span></div>
+  <div class="mit"><b>Mitigation</b> · Hash with a memory-hard KDF; encrypt the store; tight access.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(49)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Sensitive data readable from Primary Database</span>
+    <span class="tstride">information_disclosure</span>
+    <span class="dim tctrl">A02:2021 · CWE-311</span>
+  </div>
+  <div class="tdrawer" id="d49"><div class="ev"><b>Evidence</b> · data_store &#x27;Primary Database&#x27; in zone &#x27;data&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Encrypt at rest and restrict read scope by role.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(50)">
+    <span class="sev" style="background:var(--coral)">high</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Unauthorized write to Primary Database</span>
+    <span class="tstride">tampering</span>
+    <span class="dim tctrl">A01:2021 · CWE-639</span>
+  </div>
+  <div class="tdrawer" id="d50"><div class="ev"><b>Evidence</b> · data_store &#x27;Primary Database&#x27; in zone &#x27;data&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Enforce object-level authorization on writes.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(51)">
+    <span class="sev" style="background:var(--amber)">medium</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Credential stuffing against Unauthenticated Network Peer</span>
+    <span class="tstride">spoofing</span>
+    <span class="dim tctrl">A07:2021 · CWE-287 · T1078</span>
+  </div>
+  <div class="tdrawer" id="d51"><div class="ev"><b>Evidence</b> · external_entity &#x27;Unauthenticated Network Peer&#x27; in zone &#x27;untrusted&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/authentication</span></div>
+  <div class="mit"><b>Mitigation</b> · Rate limit, MFA, and breached-password checks.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(52)">
+    <span class="sev" style="background:var(--amber)">medium</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Identity spoofing by Unauthenticated Network Peer</span>
+    <span class="tstride">spoofing</span>
+    <span class="dim tctrl">A07:2021 · CWE-287 · T1078</span>
+  </div>
+  <div class="tdrawer" id="d52"><div class="ev"><b>Evidence</b> · external_entity &#x27;Unauthenticated Network Peer&#x27; in zone &#x27;untrusted&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Strong authentication / certificate pinning.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(53)">
+    <span class="sev" style="background:var(--amber)">medium</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Unbounded consumption at API Gateway</span>
+    <span class="tstride">denial_of_service</span>
+    <span class="dim tctrl">LLM10 · CWE-400 · T1499</span>
+  </div>
+  <div class="tdrawer" id="d53"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Token/cost budgets and per-tenant quotas.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(54)">
+    <span class="sev" style="background:var(--amber)">medium</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Resource exhaustion at API Gateway</span>
+    <span class="tstride">denial_of_service</span>
+    <span class="dim tctrl">A04:2021 · CWE-400 · T1499</span>
+  </div>
+  <div class="tdrawer" id="d54"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Add rate limiting and request quotas.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(55)">
+    <span class="sev" style="background:var(--amber)">medium</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Missing rate limiting at API Gateway</span>
+    <span class="tstride">denial_of_service</span>
+    <span class="dim tctrl">A04:2021 · CWE-400 · T1499</span>
+  </div>
+  <div class="tdrawer" id="d55"><div class="ev"><b>Evidence</b> · process &#x27;API Gateway&#x27; in zone &#x27;dmz&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Per-client rate limits and concurrency caps.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(56)">
+    <span class="sev" style="background:var(--amber)">medium</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Unbounded consumption at Auth / Session Service</span>
+    <span class="tstride">denial_of_service</span>
+    <span class="dim tctrl">LLM10 · CWE-400 · T1499</span>
+  </div>
+  <div class="tdrawer" id="d56"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Token/cost budgets and per-tenant quotas.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(57)">
+    <span class="sev" style="background:var(--amber)">medium</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Resource exhaustion at Auth / Session Service</span>
+    <span class="tstride">denial_of_service</span>
+    <span class="dim tctrl">A04:2021 · CWE-400 · T1499</span>
+  </div>
+  <div class="tdrawer" id="d57"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Add rate limiting and request quotas.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(58)">
+    <span class="sev" style="background:var(--amber)">medium</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Missing rate limiting at Auth / Session Service</span>
+    <span class="tstride">denial_of_service</span>
+    <span class="dim tctrl">A04:2021 · CWE-400 · T1499</span>
+  </div>
+  <div class="tdrawer" id="d58"><div class="ev"><b>Evidence</b> · process &#x27;Auth / Session Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Per-client rate limits and concurrency caps.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(59)">
+    <span class="sev" style="background:var(--amber)">medium</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Unbounded consumption at Upload / File Handler</span>
+    <span class="tstride">denial_of_service</span>
+    <span class="dim tctrl">LLM10 · CWE-400 · T1499</span>
+  </div>
+  <div class="tdrawer" id="d59"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Token/cost budgets and per-tenant quotas.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(60)">
+    <span class="sev" style="background:var(--amber)">medium</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Resource exhaustion at Upload / File Handler</span>
+    <span class="tstride">denial_of_service</span>
+    <span class="dim tctrl">A04:2021 · CWE-400 · T1499</span>
+  </div>
+  <div class="tdrawer" id="d60"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Add rate limiting and request quotas.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(61)">
+    <span class="sev" style="background:var(--amber)">medium</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Missing rate limiting at Upload / File Handler</span>
+    <span class="tstride">denial_of_service</span>
+    <span class="dim tctrl">A04:2021 · CWE-400 · T1499</span>
+  </div>
+  <div class="tdrawer" id="d61"><div class="ev"><b>Evidence</b> · process &#x27;Upload / File Handler&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Per-client rate limits and concurrency caps.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(62)">
+    <span class="sev" style="background:var(--amber)">medium</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Unbounded consumption at LLM / Agent Service</span>
+    <span class="tstride">denial_of_service</span>
+    <span class="dim tctrl">LLM10 · CWE-400 · T1499</span>
+  </div>
+  <div class="tdrawer" id="d62"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · ai-security/llm-top-10</span></div>
+  <div class="mit"><b>Mitigation</b> · Token/cost budgets and per-tenant quotas.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(63)">
+    <span class="sev" style="background:var(--amber)">medium</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Resource exhaustion at LLM / Agent Service</span>
+    <span class="tstride">denial_of_service</span>
+    <span class="dim tctrl">A04:2021 · CWE-400 · T1499</span>
+  </div>
+  <div class="tdrawer" id="d63"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/threat-modeling</span></div>
+  <div class="mit"><b>Mitigation</b> · Add rate limiting and request quotas.</div>
+  </div>
+</div><div class="threat">
+  <div class="trow" onclick="tg(64)">
+    <span class="sev" style="background:var(--amber)">medium</span>
+    <span class="reach" style="color:var(--coral)">exposed</span>
+    <span class="tn">Missing rate limiting at LLM / Agent Service</span>
+    <span class="tstride">denial_of_service</span>
+    <span class="dim tctrl">A04:2021 · CWE-400 · T1499</span>
+  </div>
+  <div class="tdrawer" id="d64"><div class="ev"><b>Evidence</b> · process &#x27;LLM / Agent Service&#x27; in zone &#x27;app&#x27;</div>
+  <div class="badges"><span class="badge warn">security unverified</span><span class="badge warn">behavior UNVERIFIED</span><span class="badge">skill · appsec/api-security</span></div>
+  <div class="mit"><b>Mitigation</b> · Per-client rate limits and concurrency caps.</div>
+  </div>
+</div></section>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+const MERMAID_SRC = "flowchart LR\n  subgraph Z0[\"trust zone: untrusted\"]\n    N0[\"Unauthenticated Network Peer\"]\n  end\n  subgraph Z1[\"trust zone: dmz\"]\n    N1((\"API Gateway\"))\n  end\n  subgraph Z2[\"trust zone: app\"]\n    N2((\"Auth / Session Service\"))\n    N3((\"Upload / File Handler\"))\n    N4((\"LLM / Agent Service\"))\n  end\n  subgraph Z3[\"trust zone: data\"]\n    N5[(\"Primary Database\")]\n  end\n  N0 -.->|HTTPS request / partial| N1\n  N1 -.->|internal call / none| N2\n  N2 -.->|read/write / none| N5\n  N1 -.->|internal call / none| N3\n  N3 -.->|read/write / none| N5\n  N1 -.->|internal call / none| N4\n  N4 -.->|read/write / none| N5\n\n  classDef attacker fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d\n  classDef asset fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f\n  classDef proc fill:#e0e7ff,stroke:#4f46e5,color:#3730a3\n  classDef exposed stroke:#dc2626,stroke-width:4px,stroke-dasharray:4 2\n  class N1,N2,N3,N4 proc\n  class N5 asset\n  class N0 attacker\n  class N3,N5,N1,N0,N4,N2 exposed";
+function tg(i){var d=document.getElementById('d'+i);if(d)d.classList.toggle('open');}
+(function(){
+  function render(){
+    if(!window.mermaid){var e=document.getElementById('mmderr');if(e)e.textContent='mermaid · CDN unavailable (offline?)';return;}
+    try{
+      mermaid.initialize({startOnLoad:false, theme:'default', securityLevel:'loose', fontFamily:'ui-monospace, monospace'});
+      mermaid.render('mmd-svg', MERMAID_SRC).then(function(r){var m=document.getElementById('mmd');if(m)m.innerHTML=r.svg;})
+        .catch(function(err){var e=document.getElementById('mmderr');if(e)e.textContent='mermaid · '+err.message;});
+    }catch(err){var e=document.getElementById('mmderr');if(e)e.textContent='mermaid · '+err.message;}
+  }
+  if(window.mermaid){render();}
+  else{var s=document.querySelector('script[src*="mermaid"]');if(s)s.addEventListener('load',render);else render();}
+})();
+</script></main></body></html>

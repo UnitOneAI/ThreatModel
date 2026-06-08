@@ -35,6 +35,9 @@ print('\n'.join(n for n in zipfile.ZipFile(w).namelist() if 'skills/' in n))"
 serve:          ## start the MCP server (stdio)
 	synthesis serve
 
+ui:             ## launch the local web UI (threat modeling + fixing)
+	synthesis ui
+
 clean:          ## remove build/test artifacts
 	rm -rf dist build *.egg-info .pytest_cache .mypy_cache .ruff_cache
 	find . -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true

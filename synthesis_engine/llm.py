@@ -162,26 +162,50 @@ class BudgetedLLM(LLM):
         return self.inner.json(system, user)
 
 
-def get_llm(prefer_worker: bool = False, allow_test: bool = False) -> LLM:
-    """Provider ladder: Anthropic -> OpenAI-compatible -> bundled local model ->
-    (only if explicitly allowed) test mode. Raises NoProviderError otherwise so a
-    real run never silently falls back to fixtures."""
+def get_llm(prefer_worker: bool = False, allow_test: bool = False,
+            provider: str | None = None, model: str | None = None) -> LLM:
+    """Pick the LLM. With `provider` set ('anthropic' | 'openai' | 'local' | 'test'),
+    that provider/model is used for THIS run (the per-run model picker) — so choosing
+    OpenAI runs on OpenAI, not Claude. With no provider, falls back to the default
+    ladder. Raises NoProviderError (with a Configure hint) when the chosen/needed key
+    is missing, so a real run never silently uses fixtures.
+    """
     from .config import get_config
     cfg = get_config()
+    provider = (provider or "").lower()
+
+    if allow_test or provider == "test":
+        return TestLLM()
+    if provider == "anthropic":
+        if not cfg.anthropic_key:
+            raise NoProviderError("Anthropic API key not set — add it under Configure.")
+        return AnthropicLLM(cfg.anthropic_key, model=model or cfg.model)
+    if provider == "openai":
+        if not cfg.openai_key:
+            raise NoProviderError("OpenAI API key not set — add it under Configure.")
+        base = cfg.openai_base or "https://api.openai.com/v1"
+        return OpenAICompatibleLLM(base, cfg.openai_key, model=model or cfg.model)
+    if provider == "local":
+        from .local_llm import get_local_llm, local_available
+        if not local_available():
+            raise NoProviderError("Local model not installed — pip install 'synthesis-engine[local]'.")
+        lm = get_local_llm(download=True)
+        if lm is None:
+            raise NoProviderError("Local model could not be loaded.")
+        return lm
+
+    # default ladder (no explicit provider)
     if cfg.anthropic_key:
-        model = cfg.worker_model if prefer_worker else cfg.model
-        return AnthropicLLM(cfg.anthropic_key, model=model)
+        m = cfg.worker_model if prefer_worker else cfg.model
+        return AnthropicLLM(cfg.anthropic_key, model=m)
     if cfg.openai_base and cfg.openai_key:
         return OpenAICompatibleLLM(cfg.openai_base, cfg.openai_key, model=cfg.model)
-
-    # bundled local model: auto if installed + (opted in or already downloaded)
     from .local_llm import get_local_llm, is_model_cached, local_available
     if local_available() and (cfg.use_local or is_model_cached()):
-        local = get_local_llm(download=cfg.use_local)
-        if local is not None:
-            return local
-
-    if allow_test or cfg.test_mode:
+        lm = get_local_llm(download=cfg.use_local)
+        if lm is not None:
+            return lm
+    if cfg.test_mode:
         return TestLLM()
     raise NoProviderError(_NO_PROVIDER_MSG)
 

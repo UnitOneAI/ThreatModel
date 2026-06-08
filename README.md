@@ -83,6 +83,31 @@ If none is configured, a real run returns an error telling you how to fix it —
 will **not** silently emit fixtures. The local model gives a genuine, free, fully
 offline scan; test mode does not.
 
+## Visual report & local UI
+
+Threat modeling is visual. Every model renders as a self-contained HTML report —
+data-flow diagram (Mermaid, with trust-zone subgraphs and attacker/asset/exposed
+highlighting), STRIDE-per-element coverage matrix, threat actors, trust zones, OWASP
+coverage, and a threat table with a per-threat fix drawer (mitigation, code diff,
+honesty-gate badges).
+
+```bash
+synthesis analyze ./arch.md --html report.html     # write a report alongside a scan
+synthesis report <model_id> --open                 # render a stored model + open it
+synthesis ui                                       # local web app → http://127.0.0.1:8765
+```
+
+`synthesis ui` is a stdlib-only web app (no framework, localhost-bound), styled to the
+UnitOne design system, with a left sidebar:
+
+- **Threat Models** — list of every model you've run (persisted), and an **Add Threat
+  Model Source** form to scan N repos + N docs together. Open one to see the full
+  visual report (DFD, 3-column threat-analysis overview, STRIDE matrix, threats).
+- **Fix Queue** — every generated fix across models: the diff, the skill that produced
+  it, the component it touches, and security/behavior-verified badges.
+- **Learn · Skills** — the skill auto-evolution surface: each skill's confidence cap
+  and accept/reject history (the flywheel state).
+
 ## Use it from an agent (MCP)
 
 Start the server: `synthesis serve` (stdio). Register it with your agent, e.g. for

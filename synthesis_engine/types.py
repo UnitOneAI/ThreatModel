@@ -36,6 +36,16 @@ STRIDE_APPLICABILITY = {
 
 SEVERITIES = ["critical", "high", "medium", "low", "info"]
 
+# actor -> (capability, motivation) for the spine 'Threat actors' panel.
+ACTOR_PROFILES = {
+    "External Attacker (Opportunistic)": ("low-medium", "financial gain, data theft"),
+    "External Attacker (Targeted)": ("medium-high", "IP theft, espionage, disruption"),
+    "Malicious Insider": ("high (privileged access)", "financial gain, sabotage"),
+    "Automated Bot/Scraper": ("low", "resource abuse, credential stuffing"),
+    "AI/LLM Threat Actor": ("medium-high", "prompt injection, data exfiltration, model abuse"),
+    "Supply Chain Attacker": ("medium-high", "broad downstream compromise"),
+}
+
 
 def _id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:8]}"
@@ -188,15 +198,66 @@ class ThreatModel:
     def actors(self) -> list[str]:
         return sorted({t.actor for t in self.threats if t.actor})
 
+    def trust_zones(self) -> list[str]:
+        return sorted({c.zone for c in self.dfd.components if c.zone})
+
+    def threat_actors_detail(self) -> list[dict[str, Any]]:
+        """Actors with capability/motivation + how many threats reference each
+        (spine 'Threat actors' panel shape)."""
+        rank = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0}
+        agg: dict[str, dict[str, Any]] = {}
+        for t in self.threats:
+            if not t.actor:
+                continue
+            a = agg.setdefault(t.actor, {"name": t.actor, "count": 0, "max_severity": "low"})
+            a["count"] += 1
+            if rank.get(t.severity, 0) > rank.get(a["max_severity"], 0):
+                a["max_severity"] = t.severity
+        out = []
+        for name, a in sorted(agg.items(), key=lambda kv: -kv[1]["count"]):
+            cap, mot = ACTOR_PROFILES.get(name, ("medium", "opportunistic compromise"))
+            out.append({**a, "capability": cap, "motivation": mot})
+        return out
+
+    def trust_boundaries(self) -> list[dict[str, Any]]:
+        """Boundary crossings derived from the DFD (spine 'Trust boundaries' panel):
+        from -> to, the control on the crossing, and the gap when it's weak."""
+        by_id = {c.id: c for c in self.dfd.components}
+        seen, out = set(), []
+        for f in self.dfd.flows:
+            if not f.crosses_boundary:
+                continue
+            src, dst = by_id.get(f.src), by_id.get(f.dst)
+            if not src or not dst:
+                continue
+            key = (src.name, dst.name)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append({
+                "from": f"{src.name} ({src.zone})", "to": f"{dst.name} ({dst.zone})",
+                "control": f.control,
+                "gap": None if f.control == "strong" else f"unauthenticated/weak crossing ({f.control})",
+            })
+        return out
+
+    def mermaid(self) -> str:
+        from .viz import dfd_to_mermaid
+        return dfd_to_mermaid(self.dfd, self.threats)
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "design": self.design.to_dict(),
             "dfd": self.dfd.to_dict(),
+            "mermaid": self.mermaid(),
             "threats": [t.to_dict() for t in self.threats],
             "stride_matrix": self.stride_matrix(),
             "owasp_coverage": self.owasp_coverage(),
             "actors": self.actors(),
+            "threat_actors": self.threat_actors_detail(),
+            "trust_boundaries": self.trust_boundaries(),
+            "trust_zones": self.trust_zones(),
             "mode": self.mode,
             "created": self.created,
             "trace": self.trace.to_dict(),

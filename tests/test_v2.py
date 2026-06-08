@@ -8,6 +8,7 @@ _TMP = tempfile.mkdtemp(prefix="synthesis-v2-")
 os.environ["SYNTHESIS_DB"] = os.path.join(_TMP, "ig.db")
 os.environ["SYNTHESIS_MODELS_DIR"] = os.path.join(_TMP, "models")
 os.environ["SYNTHESIS_AUDIT_LOG"] = os.path.join(_TMP, "audit.log")
+os.environ["SYNTHESIS_SETTINGS"] = os.path.join(_TMP, "settings.json")
 os.environ.pop("ANTHROPIC_API_KEY", None)
 os.environ.pop("OPENAI_BASE_URL", None)
 
@@ -75,6 +76,18 @@ def test_llm_dfd_parses_provider_output():
     assert dfd and dfd.components[0].id == "c1"
 
 
+def test_llm_plan_builds_index_and_jobs():
+    # regression: _llm_plan built the skill index from the wrong variable (str.id)
+    from synthesis_engine.plan import plan
+    from synthesis_engine.types import Dfd
+    sk = load_skills()
+    valid_id = next(iter(sk))
+    dfd = Dfd(components=[Component(id="c1", name="API", kind=PROCESS, zone="dmz")])
+    fake = FakeLLM({"jobs": [{"skill_id": valid_id, "target": "c1", "rationale": "r"}]})
+    jobs = plan(dfd, sk, "ctx", "", fake)
+    assert jobs and jobs[0].target == "c1"
+
+
 # --- budget (arch review S3) ----------------------------------------------
 def test_budget_caps_calls():
     b = BudgetedLLM(FakeLLM({"x": 1}), max_calls=2)
@@ -118,6 +131,97 @@ def test_audit_appends():
     audit.record("unit_test_event", n=1)
     recent = audit.read_recent(20)
     assert any(e["event"] == "unit_test_event" for e in recent)
+
+
+# --- visuals: mermaid DFD + HTML report -----------------------------------
+def test_dfd_to_mermaid_highlights():
+    from synthesis_engine.types import DATA_STORE, EXTERNAL_ENTITY, Dfd, Flow
+    from synthesis_engine.viz import dfd_to_mermaid
+    dfd = Dfd(
+        components=[
+            Component(id="a", name="Attacker", kind=EXTERNAL_ENTITY, zone="untrusted"),
+            Component(id="p", name="API", kind=PROCESS, zone="dmz"),
+            Component(id="d", name="DB", kind=DATA_STORE, zone="data"),
+        ],
+        flows=[Flow(id="f1", src="a", dst="p", label="req", crosses_boundary=True, control="none")],
+    )
+    m = dfd_to_mermaid(dfd, [])
+    assert "flowchart" in m and "subgraph" in m
+    assert "attacker" in m and "asset" in m  # classDefs applied
+
+
+def test_model_has_mermaid_and_report_renders():
+    from synthesis_engine.loop import run_threat_model
+    from synthesis_engine.report import render_html
+    md = run_threat_model(doc="public API with jwt, calls an llm agent, reads postgres; file upload",
+                          mode="fix", allow_test=True)
+    assert "flowchart" in md["mermaid"]
+    assert md["trust_zones"]
+    html = render_html(md, fix_action=True)
+    for needle in ("Data flow diagram", "STRIDE coverage matrix", "mermaid.min.js",
+                   "MERMAID_SRC", "Threat actors", "Run fixer on this threat"):
+        assert needle in html
+
+
+def test_actors_and_trust_boundaries_in_model():
+    from synthesis_engine.loop import run_threat_model
+    md = run_threat_model(doc="public api with jwt, llm agent, postgres, file upload, sql",
+                          mode="agentic", allow_test=True)
+    assert md["threat_actors"] and "capability" in md["threat_actors"][0]
+    assert md["trust_boundaries"] and "control" in md["trust_boundaries"][0]
+
+
+def test_ui_pages_render():
+    from synthesis_engine import ui
+    assert b"<html" in ui._models_page()
+    assert b"<html" in ui._fixes_page()
+    assert b"Learn" in ui._learn_page()
+    assert b"Add Threat Model Source" in ui._new_page()
+    cfg = ui._configure_page()
+    assert b"GitHub token" in cfg and b"Anthropic" in cfg and b"Configure" in cfg
+
+
+def test_configure_settings_persist_and_github_token():
+    from synthesis_engine.config import get_config, save_settings
+    from synthesis_engine.ingest import _gh_headers
+    save_settings({"github_token": "ghp_test123", "model": "test-model"})
+    cfg = get_config(refresh=True)
+    assert cfg.github_token == "ghp_test123" and cfg.model == "test-model"
+    # blank secret doesn't wipe an existing one; non-secret updates apply
+    save_settings({"github_token": "", "model": "other-model"})
+    cfg = get_config(refresh=True)
+    assert cfg.github_token == "ghp_test123"   # kept
+    assert cfg.model == "other-model"          # updated
+    # private-repo fetch uses the configured token
+    assert _gh_headers().get("authorization") == "Bearer ghp_test123"
+
+
+def test_logo_is_packaged():
+    from synthesis_engine.assets import logo_data_uri
+    assert logo_data_uri().startswith("data:image/png;base64,")
+
+
+def test_colorize_diff():
+    from synthesis_engine.report import colorize_diff
+    html = colorize_diff("@@ -1 +1 @@\n-old line\n+new line\n unchanged")
+    assert 'class="dl add"' in html and 'class="dl del"' in html and 'class="dl hunk"' in html
+
+
+def test_provider_model_override():
+    import pytest
+
+    from synthesis_engine.config import get_config, save_settings
+    from synthesis_engine.llm import AnthropicLLM, NoProviderError, OpenAICompatibleLLM, get_llm
+    with pytest.raises(NoProviderError):       # openai chosen but no key
+        get_llm(provider="openai")
+    save_settings({"anthropic_key": "sk-ant-x", "openai_key": "sk-oa-x"})
+    get_config(refresh=True)
+    a = get_llm(provider="anthropic", model="claude-pick")
+    assert isinstance(a, AnthropicLLM) and a.model == "claude-pick"
+    o = get_llm(provider="openai", model="gpt-pick")
+    assert isinstance(o, OpenAICompatibleLLM) and o.model == "gpt-pick"
+    # picking OpenAI does NOT fall through to Claude even though a Claude key exists
+    assert get_llm(provider="openai").name == "openai-compatible"
 
 
 # --- skill injection-scan gate (arch review S1) ---------------------------
