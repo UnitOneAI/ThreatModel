@@ -6,6 +6,8 @@ matrix, OWASP/CWE/MITRE-grounded threats, reachability triage), then **proposes 
 sandbox-validates fixes and opens a PR** — and the skills get sharper every time you
 run it.
 
+![Synthesis — threat model with data-flow diagram and threats](docs/ui-threat-model.svg)
+
 MCP-first: the engine is exposed as MCP tools, so any agent (Claude Code, Cursor,
 your own orchestrator) calls the same loop. It also ships a CLI. A **real scan needs
 a model** — a hosted key, an OpenAI-compatible endpoint, or the bundled local model.
@@ -74,7 +76,7 @@ The engine tries providers in this order; the first available wins:
 
 | Order | Provider | How | Notes |
 |---|---|---|---|
-| 1 | **Anthropic** | `ANTHROPIC_API_KEY` | best quality |
+| 1 | **Anthropic** | `ANTHROPIC_API_KEY` | best quality. **Claude Fable 5** (`claude-fable-5`) recommended for threat modeling; **Mythos 5** (`claude-mythos-5`, cyber-class) via the Project Glasswing preview. Also Sonnet/Opus/Haiku. |
 | 2 | **OpenAI-compatible** | `OPENAI_BASE_URL` + `OPENAI_API_KEY` | vLLM, Ollama, LM Studio, local servers |
 | 3 | **Bundled local model** | `pip install '.[local]'` + `SYNTHESIS_USE_LOCAL=1` | Default **Qwen3-4B-Instruct** (Apache-2.0, ~2.5GB), pulled from HF Hub at a pinned revision on first use and cached. Security-domain upgrade: `SYNTHESIS_LOCAL_MODEL=foundation-sec` (**Foundation-Sec-8B**, Cisco, ~4.9GB) or `foundation-sec-apache` (Apache base). Full override via `SYNTHESIS_LOCAL_REPO/FILE/REVISION`. |
 | — | **Test mode** | `--test` / `SYNTHESIS_TEST_MODE=1` | **CI/UI demo only** — deterministic *templated fixtures*, not a real scan. Refuses to masquerade: every output is stamped `demo: true` + a warning. |

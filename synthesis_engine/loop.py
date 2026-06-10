@@ -7,6 +7,7 @@ local Intent Graph (warm-start + write) and skill confidence calibration.
 """
 from __future__ import annotations
 
+import urllib.error
 from typing import Any
 
 from . import audit, store
@@ -69,6 +70,10 @@ def run_threat_model(
     except BudgetExceeded as e:
         audit.record("scan_aborted", reason="budget", detail=str(e))
         return {"error": str(e)}
+    except (urllib.error.HTTPError, urllib.error.URLError) as e:
+        audit.record("scan_aborted", reason="provider_error", detail=str(e))
+        return {"error": f"Model provider request failed: {e}. Check the model id and "
+                         f"that your key has access (Claude Mythos 5 requires Project Glasswing)."}
     audit.record("scan_finish", model_id=md["id"], threats=len(md["threats"]),
                  exposed=sum(1 for t in md["threats"] if t.get("reachability") == "exposed"))
     return md

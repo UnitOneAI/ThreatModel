@@ -32,3 +32,4 @@ _probe.txt
 
 # generated demo captures (regenerate with `synthesis ui` / `synthesis report`)
 examples/app-*-snapshot.html
+docs/_preview.png
