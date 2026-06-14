@@ -245,3 +245,38 @@ def test_skill_scan_flags_injection_and_bad_controls(tmp_path):
     assert "injection" in joined
     assert "A99:2021" in joined
     assert "confidence_cap" in joined
+
+
+# --- SecuritySkills (SKILL.md) format loader -------------------------------
+def test_loads_securityskills_skill_md_format(tmp_path):
+    """Engine loads the agentskills.io SKILL.md format (github.com/UnitOneAI/SecuritySkills):
+    id from the directory, triggers from tags, frameworks mapped, body bounded with the
+    output contract, block-scalar description parsed, and sibling reference files ignored."""
+    d = tmp_path / "appsec" / "ssrf"
+    d.mkdir(parents=True)
+    (d / "SKILL.md").write_text(
+        "---\n"
+        "name: ssrf\n"
+        "description: >\n"
+        "  Detects server-side request forgery where user input reaches an\n"
+        "  outbound request sink.\n"
+        "tags: [appsec, api, ssrf]\n"
+        "frameworks: [OWASP-API-2023, CWE]\n"
+        "version: \"1.0.0\"\n"
+        "---\n"
+        "# SSRF\n" + ("blah ssrf guidance line.\n" * 400)  # large body -> must be bounded
+    )
+    # a sibling reference file must NOT be ingested as its own skill
+    (d / "patterns.md").write_text("# extended SSRF patterns\n")
+
+    skills = load_skills(str(tmp_path))
+    assert "appsec/ssrf" in skills
+    assert not any("patterns" in s for s in skills)  # reference file skipped
+    sk = skills["appsec/ssrf"]
+    assert sk.domain == "appsec"
+    assert "ssrf" in sk.triggers and "api" in sk.triggers  # from tags
+    assert sk.control_frameworks == ["OWASP-API-2023", "CWE"]
+    assert sk.confidence_cap == 0.65  # default for new SKILL.md skills
+    assert "server-side request forgery" in sk.body  # block-scalar description parsed
+    assert "Output JSON only" in sk.body  # engine output contract appended
+    assert len(sk.body) < 4000  # progressive disclosure: not the whole 400-line body

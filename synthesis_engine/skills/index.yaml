@@ -1,8 +1,11 @@
 # Skill index (human-readable). The engine builds the live index by scanning each
-# SKILL.md's frontmatter, so this file is documentation — adding a skill file is
-# what adds a capability. Canonical skills live HERE (inside the package) so they
-# ship in the wheel. The planner reads the live index to SELECT skills per
-# component; reviewers load the skill body as their system prompt (read-only).
+# skill's frontmatter, so this file is documentation — adding a skill file is
+# what adds a capability. These bundled skills (flat <domain>/<name>.md, legacy
+# `id` form) ship in the wheel so the engine works offline. The canonical community
+# skill library is github.com/UnitOneAI/SecuritySkills (SKILL.md format); point the
+# engine at it with SYNTHESIS_SKILLS_DIR=/path/to/SecuritySkills/skills — the loader
+# reads both formats. The planner reads the index to SELECT skills per component;
+# reviewers load a (bounded) skill prompt as their system prompt (read-only).
 version: 1
 domains:
   appsec:
