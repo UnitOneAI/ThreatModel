@@ -37,10 +37,12 @@ def merge(dfd: Dfd, threats: list[Threat], trace=None) -> list[Threat]:
             by_key[key] = t
     merged = list(by_key.values())
 
-    # 3. reachability
-    reach = _reachability(dfd)
+    # 3. reachability (+ the attacker path to each element)
+    reach, paths = _reachability(dfd)
+    name_of = {c.id: c.name for c in dfd.components}
     for t in merged:
         t.reachability = reach.get(t.target_element, "not_reachable")
+        t.reach_path = [name_of.get(cid, cid) for cid in paths.get(t.target_element, [])]
 
     # 4. order: severity desc, exposed first
     merged.sort(key=lambda t: (_SEV_RANK.get(t.severity, 2),
@@ -51,9 +53,10 @@ def merge(dfd: Dfd, threats: list[Threat], trace=None) -> list[Threat]:
     return merged
 
 
-def _reachability(dfd: Dfd) -> dict[str, str]:
+def _reachability(dfd: Dfd) -> tuple[dict[str, str], dict[str, list[str]]]:
     """BFS from attacker entries; 'exposed' if reached via any none/partial crossing,
-    'guarded' if only via all-strong paths, else not present (=> not_reachable)."""
+    'guarded' if only via all-strong paths, else not present (=> not_reachable). Also
+    returns, per node, the component-id path from an attacker entry to it."""
     adj: dict[str, list] = {c.id: [] for c in dfd.components}
     for f in dfd.flows:
         if f.src in adj:
@@ -61,6 +64,7 @@ def _reachability(dfd: Dfd) -> dict[str, str]:
     entries = [c.id for c in dfd.components if c.kind == EXTERNAL_ENTITY] or \
               [c.id for c in dfd.components if c.zone == "untrusted"]
     status: dict[str, str] = {}
+    parent: dict[str, str] = {}
     q: deque = deque()
     for e in entries:
         status[e] = "exposed"  # the entry itself is attacker-controlled
@@ -75,5 +79,16 @@ def _reachability(dfd: Dfd) -> dict[str, str]:
                 continue
             if cur is None or (cur == "guarded" and new_status == "exposed"):
                 status[f.dst] = new_status
+                parent[f.dst] = node
                 q.append((f.dst, new_weak))
-    return status
+    # reconstruct paths
+    paths: dict[str, list[str]] = {}
+    for node in status:
+        chain, cur = [], node
+        seen = set()
+        while cur is not None and cur not in seen:
+            seen.add(cur)
+            chain.append(cur)
+            cur = parent.get(cur)
+        paths[node] = list(reversed(chain))
+    return status, paths

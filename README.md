@@ -2,11 +2,16 @@
 
 **Open-source threat modeling that doesn't stop at the report.** Point it at repos
 and/or a design doc; it builds a STRIDE threat model (DFD, per-element coverage
-matrix, OWASP/CWE/MITRE-grounded threats, reachability triage), then **proposes and
-sandbox-validates fixes and opens a PR** — and the skills get sharper every time you
-run it.
+matrix, OWASP/CWE/MITRE-grounded threats, reachability triage), then **proposes a fix
+and proves it in a sandbox** — replaying the exploit, asserting it no longer fires, and
+committing that as a permanent test — and produces a ready-to-open PR. The skills get
+sharper every time you run it.
+
+![Synthesis — one command: STRIDE threat model → sandbox-validated fix](docs/demo.gif)
 
 ![Synthesis — threat model with data-flow diagram and threats](docs/ui-threat-model.svg)
+
+_Synthesis is built and maintained by [UnitOne](https://unitone.ai); the repository lives at `UnitOneAI/ThreatModel`._
 
 MCP-first: the engine is exposed as MCP tools, so any agent (Claude Code, Cursor,
 your own orchestrator) calls the same loop. It also ships a CLI. A **real scan needs
@@ -25,7 +30,7 @@ synthesis analyze https://github.com/org/api https://github.com/org/worker arch.
 ```
 quick    one LLM pass                                   (≈ STRIDE-GPT / Threat Forge)
 agentic  planner → parallel skill reviewers → critic    (the agentic loop)
-fix      + sandbox-validated remediation → PR            ← nobody else does this for free
+fix      + sandbox-validated remediation (diff + evidence)  ← nobody else does this for free
 ```
 
 > Apache-2.0. The loop, skills, fixer, and a **local** Intent Graph are open. The
@@ -34,7 +39,40 @@ fix      + sandbox-validated remediation → PR            ← nobody else does 
 
 ---
 
+## How it compares
+
+|  | Synthesis | LLM threat-modelers (STRIDE-GPT, Threat Forge) | SAST (Semgrep, CodeQL) | Manual STRIDE |
+|---|:---:|:---:|:---:|:---:|
+| Builds a STRIDE model from **repos + design docs** | ✅ | doc/description only | ❌ (code only) | ✅ (by hand) |
+| Control IDs that **resolve** — hallucinated CWE/OWASP rejected | ✅ | ⚠️ ungrounded | ✅ | ✅ |
+| **Reachability triage** (cut unreachable noise) | ✅ | ❌ | partial | ✅ (by hand) |
+| Proposes a **fix** | ✅ | ❌ | some autofix | ❌ |
+| **Proves the fix** — replays the exploit, asserts it no longer fires | ✅ | ❌ | ❌ | ❌ |
+| **Improves with use** (local skill flywheel) | ✅ | ❌ | rules are static | n/a |
+| **MCP-first** — any agent calls the same loop | ✅ | ❌ | ❌ | ❌ |
+| Open source, runs **fully local/offline** | ✅ (Apache-2.0) | varies | ✅ | n/a |
+
+The row nobody else checks for free is *proves the fix*. Detection is commoditized; the
+agentic loop + sandbox replay is where Synthesis is different.
+
+---
+
 ## Quickstart
+
+### Try it in 60 seconds (no key, no model)
+See the whole pipeline run end-to-end on templated fixtures — zero setup, nothing to
+configure. (Loudly labeled `demo: true`; not a real scan — see [Models](#models--providers).)
+
+```bash
+pip install synthesis-engine
+echo "a REST API with JWT + an LLM agent + postgres, file upload" \
+  | synthesis analyze --doc - --mode fix --test
+# from a repo clone you can also just run:  make demo
+```
+
+Prefer the browser? Open this repo in **GitHub Codespaces** (green **Code** button →
+**Codespaces** → *Create*) — the devcontainer installs everything and runs `make demo`
+on first boot.
 
 ### pip
 ```bash
@@ -128,7 +166,7 @@ Tools exposed:
 | Tool | What it does |
 |---|---|
 | `threat_model(repos, doc, mode, focus)` | generate a model (DFD, STRIDE matrix, threats, fixes) |
-| `fix(model_id, threat_id)` | run the fixer on one threat → diff + sandbox + PR |
+| `fix(model_id, threat_id)` | run the fixer on one threat → diff + sandbox validation (+ PR when the GitHub App is configured) |
 | `get_model(model_id)` | fetch a stored model |
 | `accept_threat(model_id, threat_id, accepted)` | human verdict → calibrates the skill (flywheel) |
 | `list_skills()` / `skill_stats()` | the live skill index / current confidence caps |
@@ -144,7 +182,7 @@ Phase B  ANALYZE   one read-only reviewer per (component × skill), in parallel,
                    emitting STRIDE entries with validated control IDs
 Phase C  MERGE     dedupe, validate IDs resolve, reachability noise-cut
 Phase D  CRITIQUE  challenge high-sev threats; downgrade unreachable ones
-Phase E  FIX       propose diff → sandbox validate → PR + characterization test
+Phase E  FIX       propose diff → sandbox validate → characterization test → PR-ready output
 ```
 
 **The honesty gate.** We own the *security* regression (replay the PoC, assert it now

@@ -207,8 +207,8 @@ def _rehydrate(md: dict[str, Any]) -> ThreatModel:
             severity=t["severity"], likelihood=t.get("likelihood", "medium"),
             impact=t.get("impact", "medium"), owasp=t.get("owasp"), cwe=t.get("cwe"),
             mitre=t.get("mitre"), actor=t.get("actor"), evidence=t.get("evidence", ""),
-            reachability=t.get("reachability", "unknown"), status=t.get("status", "open"),
-            skill_id=t.get("skill_id"),
+            reachability=t.get("reachability", "unknown"), reach_path=t.get("reach_path", []),
+            status=t.get("status", "open"), skill_id=t.get("skill_id"),
             mitigation=Mitigation(**mit) if mit else None,
         ))
     model = ThreatModel(

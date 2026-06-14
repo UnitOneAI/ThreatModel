@@ -188,7 +188,8 @@ def _threats(threats: list[dict[str, Any]], model_id: str = "", fix_action: bool
         reach = t.get("reachability", "unknown")
         mit = t.get("mitigation") or {}
         ctrl = " · ".join(x for x in [t.get("owasp"), t.get("cwe"), t.get("mitre")] if x)
-        inner = _fix_drawer(t, mit) if mit else '<div class="dim">No mitigation generated yet.</div>'
+        inner = _issue_detail(t)
+        inner += _fix_drawer(t, mit) if mit else '<div class="det"><div class="deth">Mitigation</div><div class="dim">No mitigation generated yet.</div></div>'
         if fix_action:
             inner += (f'<form method="post" action="/fix" class="fixform">'
                       f'<input type="hidden" name="model_id" value="{_e(model_id)}">'
@@ -207,6 +208,31 @@ def _threats(threats: list[dict[str, Any]], model_id: str = "", fix_action: bool
     return f'<section class="card"><div class="lbl">Threats · {len(threats)}</div>{"".join(rows)}</section>'
 
 
+def _issue_detail(t: dict) -> str:
+    """Description · controls (OWASP/CWE/MITRE + STRIDE) · reachability path."""
+    controls = []
+    for label, val, col in [("STRIDE", t.get("stride"), "var(--violet)"),
+                            (None, t.get("owasp"), "var(--amber)"),
+                            (None, t.get("cwe"), "var(--slate)" if False else "var(--muted)"),
+                            (None, t.get("mitre"), "var(--muted)")]:
+        if val:
+            txt = f"{label}: {val}" if label else val
+            controls.append(f'<span class="cchip" style="border-color:{col}">{_e(txt)}</span>')
+    if t.get("actor"):
+        controls.append(f'<span class="cchip" style="border-color:var(--coral)">actor: {_e(t["actor"])}</span>')
+    chips = "".join(controls)
+    reach = t.get("reachability", "unknown")
+    rc = _REACH.get(reach, "var(--text-dim)")
+    path = t.get("reach_path") or []
+    path_html = (" → ".join(_e(p) for p in path)) if path else "—"
+    return f"""<div class="det"><div class="deth">Description</div>
+    <div class="dval">{_e(t.get('evidence') or t.get('name'))}</div></div>
+  <div class="det"><div class="deth">Controls · OWASP / CWE / MITRE</div><div class="cchips">{chips}</div></div>
+  <div class="det"><div class="deth">Reachability</div>
+    <div><span class="rstat" style="color:{rc}">{_e(reach)}</span>
+      <span class="rpath">{path_html}</span></div></div>"""
+
+
 def _fix_drawer(t: dict, mit: dict) -> str:
     badges = []
     badges.append('<span class="badge ok">security-verified</span>' if mit.get("security_verified")
@@ -217,11 +243,11 @@ def _fix_drawer(t: dict, mit: dict) -> str:
         badges.append(f'<span class="badge">skill · {_e(mit["skill_id"])}</span>')
     if mit.get("pr_url"):
         badges.append(f'<span class="badge">{_e(mit["pr_url"])}</span>')
-    diff = (f'<div class="diffh">Proposed fix</div>{colorize_diff(mit["code_fix"])}'
+    diff = (f'<div class="det"><div class="deth">Code fix</div>{colorize_diff(mit["code_fix"])}</div>'
             if mit.get("code_fix") else "")
-    return f"""<div class="ev"><b>Evidence</b> · {_e(t.get('evidence') or '—')}</div>
-  <div class="badges">{''.join(badges)}</div>
-  <div class="mit"><b>Mitigation</b> · {_e(mit.get('prose') or '—')}</div>
+    return f"""<div class="det"><div class="deth">Mitigation</div>
+    <div class="dval">{_e(mit.get('prose') or '—')}</div>
+    <div class="badges">{''.join(badges)}</div></div>
   {diff}"""
 
 
@@ -283,6 +309,13 @@ table.matrix{border-collapse:collapse;width:100%;font-size:13px}
 .tn{font-weight:600;flex:1} .tstride{font-size:12px;color:var(--text-muted)} .tctrl{font-size:11px}
 .tdrawer{display:none;padding:14px 16px;background:var(--surface-2);border-top:1px solid var(--border);font-size:13px}
 .tdrawer.open{display:block}
+.det{margin-bottom:12px}
+.deth{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--text-dim);margin-bottom:5px}
+.dval{color:var(--text-muted);line-height:1.55}
+.cchips{display:flex;gap:6px;flex-wrap:wrap}
+.cchip{font-size:11px;font-family:ui-monospace,monospace;border:1px solid var(--border-strong);border-radius:6px;padding:2px 8px;color:var(--text-muted)}
+.rstat{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-right:8px}
+.rpath{font-family:ui-monospace,monospace;font-size:12px;color:var(--text-muted)}
 .ev,.mit{margin-bottom:8px;color:var(--text-muted)} .ev b,.mit b{color:var(--text)}
 .badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
 .badge{font-size:10px;border-radius:5px;padding:2px 8px;background:var(--surface);border:1px solid var(--border);color:var(--text-muted)}

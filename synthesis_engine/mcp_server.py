@@ -38,16 +38,26 @@ def build_server():
 
     @mcp.tool()
     def threat_model(repos: list[str] = [], docs: list[str] = [], doc: str = "",
-                     mode: str = "agentic", focus: str = "", test: bool = False) -> dict[str, Any]:
+                     mode: str = "agentic", focus: str = "", model: str = "",
+                     test: bool = False) -> dict[str, Any]:
         """Generate a STRIDE threat model from repos and/or design docs (merged as one system).
 
         repos: GitHub URLs. docs: doc file paths, doc URLs, or pasted text (multiple).
         doc: single pasted doc (back-compat). mode: 'quick' | 'agentic' | 'fix'.
         focus: threat actors / attack vectors you care about.
+        model: optional model id to run this scan on, e.g. 'claude-fable-5',
+        'claude-mythos-5' (needs Project Glasswing access), or an OpenAI id like
+        'gpt-4o' — the provider is inferred and the relevant key must be set in Configure.
+        Omit to use the default from Configure.
         test: CI/demo only — TEMPLATED fixtures, NOT a real scan. Leave False for real
         analysis (requires a configured LLM provider; returns an error if none).
         """
-        md = _run_tm(repos=repos, docs=docs, doc=doc, mode=mode, focus=focus, allow_test=test)
+        provider = ""
+        if model:
+            provider = ("anthropic" if model.startswith("claude")
+                        else "openai" if model.startswith(("gpt", "o1", "o3", "o4")) else "")
+        md = _run_tm(repos=repos, docs=docs, doc=doc, mode=mode, focus=focus,
+                     allow_test=test, provider=(provider or None), model=(model or None))
         if "error" in md:
             return md
         return _summarize(md)
@@ -97,6 +107,7 @@ def _summarize(md: dict[str, Any]) -> dict[str, Any]:
         "id": md["id"],
         "mode": md["mode"],
         "provider": md.get("provider"),
+        "model": md.get("model"),
         **({"demo": True, "warning": md["warning"]} if md.get("demo") else {}),
         "sources": md["design"]["sources"],
         "components": len(md["dfd"]["components"]),

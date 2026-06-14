@@ -125,6 +125,7 @@ class Threat:
     actor: str | None = None
     evidence: str = ""
     reachability: str = "unknown"  # exposed | guarded | not_reachable | unknown
+    reach_path: list[str] = field(default_factory=list)  # attacker -> ... -> target (names)
     status: str = "open"  # open | security_verified | mitigated | accepted | rejected
     skill_id: str | None = None
     mitigation: Mitigation | None = None

@@ -33,3 +33,8 @@ _probe.txt
 # generated demo captures (regenerate with `synthesis ui` / `synthesis report`)
 examples/app-*-snapshot.html
 docs/_preview.png
+
+# local-only model comparison harness (not part of the public release)
+/bench/
+synthesis_engine/compare.py
+examples/model-comparison.html

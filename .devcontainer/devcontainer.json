@@ -1,0 +1,17 @@
+{
+  "name": "Synthesis (ThreatModel)",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "postCreateCommand": "pip install -e '.[dev,mcp]'",
+  "postAttachCommand": "make demo",
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python", "charliermarsh.ruff"]
+    }
+  },
+  "remoteEnv": {
+    "SYNTHESIS_TEST_MODE": "1"
+  }
+}
